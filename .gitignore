@@ -1,14 +1,14 @@
+# Ignore datasets
+dataset/*.csv
+
+# Python
 __pycache__/
-*.pyc
-.ipynb_checkpoints/
+*.py[cod]
 
-venv/
-env/
-
-.idea/
+# IDEs
 .vscode/
+.idea/
 
+# OS files
 .DS_Store
 Thumbs.db
-
-*.log
