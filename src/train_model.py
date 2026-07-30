@@ -1,6 +1,7 @@
 import os
 import joblib
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
@@ -17,6 +18,7 @@ from sklearn.metrics import (
     f1_score,
     classification_report,
     confusion_matrix,
+    ConfusionMatrixDisplay,
 )
 
 # ------------------------------------------------------------
@@ -56,7 +58,7 @@ X = news_data["content"]
 y = news_data["label"]
 
 # ------------------------------------------------------------
-# Split Dataset FIRST
+# Train-Test Split
 # ------------------------------------------------------------
 
 X_train, X_test, y_train, y_test = train_test_split(
@@ -71,7 +73,7 @@ print("\nTraining Samples :", len(X_train))
 print("Testing Samples  :", len(X_test))
 
 # ------------------------------------------------------------
-# TF-IDF
+# TF-IDF Vectorization
 # ------------------------------------------------------------
 
 print("\nApplying TF-IDF...")
@@ -123,10 +125,13 @@ for name, model in models.items():
     print(name)
     print("=" * 60)
 
+    # Train
     model.fit(X_train, y_train)
 
+    # Predict
     prediction = model.predict(X_test)
 
+    # Metrics
     accuracy = accuracy_score(y_test, prediction)
     precision = precision_score(y_test, prediction)
     recall = recall_score(y_test, prediction)
@@ -137,11 +142,45 @@ for name, model in models.items():
     print(f"Recall   : {recall:.4f}")
     print(f"F1 Score : {f1:.4f}")
 
+    # --------------------------------------------------------
+    # Confusion Matrix
+    # --------------------------------------------------------
+
+    cm = confusion_matrix(y_test, prediction)
+
     print("\nConfusion Matrix")
-    print(confusion_matrix(y_test, prediction))
+    print(cm)
+
+    # Save only Logistic Regression confusion matrix
+    if name == "Logistic Regression":
+
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=cm,
+            display_labels=["Fake", "True"]
+        )
+
+        disp.plot(cmap="Blues", values_format="d")
+
+        plt.title("Confusion Matrix - Logistic Regression")
+
+        plt.savefig(
+            os.path.join(outputs_folder, "confusion_matrix_lr.png"),
+            dpi=300,
+            bbox_inches="tight"
+        )
+
+        plt.close()
+
+    # --------------------------------------------------------
+    # Classification Report
+    # --------------------------------------------------------
 
     print("\nClassification Report")
     print(classification_report(y_test, prediction))
+
+    # --------------------------------------------------------
+    # Store Results
+    # --------------------------------------------------------
 
     results.append({
         "Model": name,
@@ -151,25 +190,34 @@ for name, model in models.items():
         "F1 Score": f1
     })
 
-    # Save Logistic Regression for deployment
+    # Save Logistic Regression Model
     if name == "Logistic Regression":
         best_model = model
         best_model_name = name
         best_accuracy = accuracy
 
 # ------------------------------------------------------------
-# Save Results
+# Model Comparison
 # ------------------------------------------------------------
 
 results_df = pd.DataFrame(results)
-results_df = results_df.sort_values(by="Accuracy", ascending=False)
 
-results_file = os.path.join(outputs_folder, "model_results.csv")
+results_df = results_df.sort_values(
+    by="Accuracy",
+    ascending=False
+)
+
+results_file = os.path.join(
+    outputs_folder,
+    "model_results.csv"
+)
+
 results_df.to_csv(results_file, index=False)
 
 print("\n" + "=" * 60)
 print("MODEL COMPARISON")
 print("=" * 60)
+
 print(results_df)
 
 # ------------------------------------------------------------
@@ -192,4 +240,4 @@ print("Accuracy    :", round(best_accuracy, 4))
 print("\nBest model saved.")
 print("TF-IDF Vectorizer saved.")
 print("Results saved.")
-print("\nTraining Complete.")
+print("Training Complete.")
